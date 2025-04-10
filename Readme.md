@@ -1,4 +1,4 @@
-### Arch Mirror Checker v1.1.1
+### Arch Mirror Checker v1.2.1
 #### Check Arch ISO mirrors
 
 ##### Setup
@@ -33,4 +33,6 @@ options:
   --download-url, -d [str]      URL to get the Mirrors from (https://archlinux.org/download/)
   --ask-custom-url, -a          Ask for a custom Download URL
   --log-file, -o [str]          log output file
+  --force-ascii -f              force ASCII for output file (non-ASCII chars will be escaped to unicode)
+  --disable-ssl -s              skip SSL/TLS verifying
 ```
