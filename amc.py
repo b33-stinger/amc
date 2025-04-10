@@ -74,21 +74,14 @@ def check_mirror(url: str, use_ssl: bool = True, domain_name: str = None) -> lis
     except Exception as e:
         return [0, f"Uknown Error: {e}"]
     
-def main(mirrors: list) -> int:
-    for mirror in mirrors:
+def main() -> int:
+    for mirror in data.mirrors:
         # mirror [0] = Mirror URL
         # mirror [1] = Mirror Domain Name
 
         if mirror[0] in data.log_data:
             continue
 
-        if mirror[0] in data.log_data:
-            if data.done_mirrors[0] > 0 and data.done_mirrors[1] > 0:
-                percent_done = (data.done_mirrors[0] / (data.done_mirrors[0] + data.done_mirrors[1])) * 100
-                total_percent = ((data.done_mirrors[0] + data.done_mirrors[1]) / data.all_mirrors) * 100
-                print(f" [\033[31m{data.done_mirrors[1]}\033[0m / \033[32m{data.done_mirrors[0]}\033[0m "
-                      f"({percent_done:.2f}%)/ {data.all_mirrors} / {total_percent:.2f}%]", end='\r')
-            continue
         data.log_data[mirror[0]] = {}
         log_instance = data.log_data[mirror[0]]
         log_instance["domain"] = mirror[1]
@@ -141,17 +134,17 @@ def init() -> int:
     if args.ask_custom_url:
         mirror_url = input(f"Mirror URL: [{data.download_url}]\n# ") or data.download_url
     data.log_data['mirror_url'] = mirror_url
-    mirrors = get_mirrors(mirror_url)
-    if len(mirrors) == 0:
-        print(f"Mirrors empty:\n{mirrors}")
-    data.all_mirrors = len(mirrors)
+    data.mirrors = get_mirrors(mirror_url)
+    if len(data.mirrors) == 0:
+        print(f"Mirrors empty:\n{data.mirrors}")
+    data.all_mirrors = len(data.mirrors)
     if data.check_amount and data.all_mirrors > data.check_amount:
-        mirrors = mirrors[:data.check_amount]
-        data.all_mirrors = len(mirrors)
+        data.mirrors = data.mirrors[:data.check_amount]
+        data.all_mirrors = len(data.mirrors)
 
     with ThreadPoolExecutor(max_workers=data.worker_count) as executor:
-        executor.map(main, mirrors)
-    
+        for _ in range(data.worker_count):
+            executor.submit(main)
     return 1
 
 

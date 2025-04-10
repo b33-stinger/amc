@@ -1,4 +1,4 @@
-### Arch Mirror Checker v1.1
+### Arch Mirror Checker v1.1.1
 #### Check Arch ISO mirrors
 
 ##### Setup
