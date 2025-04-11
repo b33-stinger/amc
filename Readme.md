@@ -1,4 +1,4 @@
-### Arch Mirror Checker v1.2.1
+### Arch Mirror Checker v1.3.1
 #### Check Arch ISO mirrors
 
 ##### Setup
@@ -6,11 +6,12 @@
 ```bash
 chmod +x amc.py
 sudo pacman -S python-requests python-regex python-argparse-utils --needed
+yay -S python-bs4 --needed
 ```
 ###### Ubuntu / Debian
 ```bash
 chmod +x amc.py
-pip install regex argparse futures requests || python -m pip install argparse regex futures requests
+pip install regex argparse futures requests beautifulsoup4 || python -m pip install argparse regex futures requests beautifulsoup4
 ```
 
 ### Start
@@ -35,4 +36,6 @@ options:
   --log-file, -o [str]          log output file
   --force-ascii -f              force ASCII for output file (non-ASCII chars will be escaped to unicode)
   --disable-ssl -s              skip SSL/TLS verifying
+  --include-country -i [str]    Check Mirrors from countries. COUNTRY1,COUNTRY2,COUNTRY3....
+  --exclude-country -e [str]    Skip  Mirrors from countries. COUNTRY1,COUNTRY2,COUNTRY3....
 ```
