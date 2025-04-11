@@ -1,9 +1,10 @@
 #!/bin/env python3
-from requests import get as req_get, exceptions as req_exceptions, Session as req_Session
+from requests import get as req_get, exceptions as req_exceptions
 from regex import compile as re_compile
 from json import dump as json_dump
 from threading import Thread as threading_Thread
 from argparse import ArgumentParser as argparse_ArgumentParser
+from bs4 import BeautifulSoup
 
 
 class Data():
@@ -11,7 +12,7 @@ class Data():
     thread_count: int = 10                              # Threads (amount) you want to use
     threads: list = []                                  # Threads (thread) to join
     download_url = "https://archlinux.org/download/"    # Default download URL
-    mirrors = []                                        # All Mirrors. I'll sort them by countries [next update]
+    mirrors = []                                        # All Mirrors. Now with country
     # done_mirrors[0] = Wroking (amount)
     # done_mirrors[1] = Not Working (amount)
     done_mirrors = [0, 0]                               # How many Mirrors Work / Not
@@ -23,12 +24,36 @@ class Data():
     verify_ssl = True                                   # verify SSL/TLS ?
     force_ascii = False                                 # Escape non-ASCII chars into Unicode ?
 
-class RegEx():
-    MIRROS = re_compile('<li>\s*<a href="(.*?)"\s*title="Download from .*">\s*(.*?)\s*</a>\s*</li>')
+class Parsing():
     CERT_ERROR = re_compile("certificate verify failed: (.*?) \(")
 
+    def parse_html(self, data: str, sort: list = None) -> list:
+        # sort [0] = Include
+        # sort [1] = Exclude
+        soup = BeautifulSoup(data, 'html.parser')
+        main_div = soup.find('div', id='download-mirrors')
+        links = []
+        for h5 in main_div.find_all('h5'):
+            country = h5.get_text(strip=True).lower()
+            if sort[0] != [] and country not in sort[0]:
+                continue # Skip not included country
+
+            if sort[1] != [] and country in sort[1]:
+                continue # Skip excluded country
+
+            ul = h5.find_next_sibling()
+            while ul and ul.name != 'ul':
+                ul = ul.find_next_sibling()
+
+            if ul:
+                for a in ul.find_all('a', href=True):
+                    link = a['href']
+                    text = a.get_text(strip=True)
+                    links.append([link, text, country])
+        return links
+
 data = Data()
-regex = RegEx()
+parsing = Parsing()
 
 
 def log(log_data: dict = {}, reset: bool = False) -> int:
@@ -40,12 +65,12 @@ def log(log_data: dict = {}, reset: bool = False) -> int:
         json_dump(log_data, f, indent=4, ensure_ascii=data.force_ascii)
     return 1
 
-def get_mirrors(url: str = data.download_url) -> list:
+def get_mirrors(url: str = data.download_url, sort: list = None) -> list:
     req = req_get(url)
     if str(req.status_code)[0] != "2":
         print(f"Failed to get Mirros from {url}")
         return []
-    return RegEx.MIRROS.findall(req.text)
+    return parsing.parse_html(req.text, sort)
 
 def check_mirror(url: str, use_ssl: bool = data.verify_ssl) -> list[int|str, int, int]:
     try:
@@ -68,7 +93,7 @@ def check_mirror(url: str, use_ssl: bool = data.verify_ssl) -> list[int|str, int
             payload = "Network is unreachable"
         elif "certificate verify failed" in str(e):
             check = check_mirror(url, False)
-            payload = f"SSL Certificate failed: {RegEx.CERT_ERROR.findall(str(e))[0]}"
+            payload = f"SSL Certificate failed: {parsing.CERT_ERROR.findall(str(e))[0]}"
             if check[0]:
                 return check                
         else:
@@ -81,6 +106,7 @@ def main() -> int:
     for mirror in data.mirrors:
         # mirror [0] = Mirror URL
         # mirror [1] = Mirror Domain Name
+        # mirror [2] = Mirror Country
 
         if mirror[0] in data.log_data:
             continue
@@ -96,21 +122,22 @@ def main() -> int:
             log_instance["status"]["ms"] = check[1]
             log_instance["status"]["µs"] = check[2]
             log_instance["status"]["status"] = 1
-            print(mirror[0] + " "*(70 - len(mirror[0])) + "✅" + " "
-                  + str(log_instance["status"]["ms"]) + "ms / " + str(log_instance["status"]["µs"]) + "µs")
-            percent_done = (data.done_mirrors[0] / (data.done_mirrors[0] + data.done_mirrors[1])) * 100
-            total_percent = ((data.done_mirrors[0] + data.done_mirrors[1]) / data.all_mirrors) * 100
-            print(f" [\033[31m{data.done_mirrors[1]}\033[0m / \033[32m{data.done_mirrors[0]}\033[0m "
-                  f"({percent_done:.2f}%)/ {data.all_mirrors} / ({data.all_mirrors - (data.done_mirrors[0] + data.done_mirrors[1])}) {total_percent:.2f}%]", end='\r')
-            continue
-        data.done_mirrors[1] += 1
-        log_instance["status"]["error"] = check[1]
-        log_instance["status"]["status"] = 0
-        print(mirror[0] + " "*(70 - len(mirror[0])) + "❌" + " " + log_instance["status"]["error"])
+            status_icon = "✅"
+            status_message = f"{log_instance['status']['ms']}ms / {log_instance['status']['µs']}µs"
+        else:
+            data.done_mirrors[1] += 1
+            log_instance["status"]["error"] = check[1]
+            log_instance["status"]["status"] = 0
+            status_icon = "❌"
+            status_message = log_instance["status"]["error"]
+
         percent_done = (data.done_mirrors[0] / (data.done_mirrors[0] + data.done_mirrors[1])) * 100
         total_percent = ((data.done_mirrors[0] + data.done_mirrors[1]) / data.all_mirrors) * 100
+
+        print(f"{mirror[0]} {' ' * (70 - len(mirror[0]))} {mirror[2]} {' ' * (20 - len(mirror[2]))} {status_icon} {status_message}")
         print(f" [\033[31m{data.done_mirrors[1]}\033[0m / \033[32m{data.done_mirrors[0]}\033[0m "
-              f"({percent_done:.2f}%)/ {data.all_mirrors} / ({data.all_mirrors - (data.done_mirrors[0] + data.done_mirrors[1])}) {total_percent:.2f}%]", end='\r')
+            f"({percent_done:.2f}%) / {data.all_mirrors} / ({data.all_mirrors - (data.done_mirrors[0] + data.done_mirrors[1])}) "
+            f"{total_percent:.2f}%]", end='\r')
 
     log(data.log_data)
     return 1
@@ -119,13 +146,15 @@ def main() -> int:
 def init() -> int:
     parser = argparse_ArgumentParser(description="AMC | Arch Mirror Checker")
     parser.add_argument('--threads', '-n', type=int, help='thread amount', default=5)
-    parser.add_argument('--timeout', '-t', type=float, help='Request timeout (seconds)', default=60)
+    parser.add_argument('--timeout', '-t', type=float, help='Request timeout (seconds)', default=data.request_timeout)
     parser.add_argument('--max-check', '-c', type=int, help='Check only the first X Mirrors (0 = no limit)', default=0)
     parser.add_argument('--download-url', '-d', type=str, help=f'URL to get the Mirrors from ({data.download_url})')
     parser.add_argument('--ask-custom-url', '-a', help='Ask for a custom Download URL', action="store_true")
     parser.add_argument('--log-file', '-o', help='log output file', type=str, default="log.json")
     parser.add_argument('--force-ascii', '-f', help='force ASCII for output file (non-ASCII chars will be escaped to unicode)', action='store_true')
     parser.add_argument('--disable-ssl', '-s', help='skip SSL/TLS verifying', action='store_true')
+    parser.add_argument('--include-country', '-i', help='Check Mirrors from countries. COUNTRY1,COUNTRY2,COUNTRY3....', type=str)
+    parser.add_argument('--exclude-country', '-e', help='Skip  Mirrors from countries. COUNTRY1,COUNTRY2,COUNTRY3....', type=str)
     args = parser.parse_args()
 
     data.log_file = args.log_file
@@ -141,7 +170,11 @@ def init() -> int:
     if args.ask_custom_url:
         mirror_url = input(f"Mirror URL: [{data.download_url}]\n# ") or data.download_url
     data.log_data['mirror_url'] = mirror_url
-    data.mirrors = get_mirrors(mirror_url)
+    sort = [
+        args.include_country.lower().split(',') if args.include_country else [], 
+        args.exclude_country.lower().split(',') if args.exclude_country else []
+    ]
+    data.mirrors = get_mirrors(mirror_url, sort)
     if len(data.mirrors) == 0:
         print(f"Mirrors empty:\n{data.mirrors}")
     data.all_mirrors = len(data.mirrors)
