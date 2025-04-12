@@ -41,3 +41,12 @@ options:
   --url-spacing, -u [int]       Spacing between URL and Country
   --no-log                      Don't log into file
 ```
+
+### Mirror file format
+```
+[URL], [Domain], [Country]
+URL is required, if Country is not set it will be defaulted to "Uknown"
+If domain is not set amc will get the domain from the URL using urlparse
+
+As of now, you can't set the Country if you didn't set the domain. Will be fixed next update
+```
