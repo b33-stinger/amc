@@ -1,4 +1,4 @@
-### Arch Mirror Checker v1.3.1
+### Arch Mirror Checker v1.4.1
 #### Check Arch ISO mirrors
 
 ##### Setup
@@ -21,21 +21,23 @@ pip install regex argparse futures requests beautifulsoup4 || python -m pip inst
     ./amc.py
 
 
-### Arguments
+### Usage
 ```
 options:
-  -h, --help            show this help message and exit
-  --workers, -w [int]            Worker Count
-
-  --timeout, -t [float]          Request timeout (seconds)
-
-  --max-check, -c [int]         Check only the first X Mirrors (0 = no limit)
-
-  --download-url, -d [str]      URL to get the Mirrors from (https://archlinux.org/download/)
+  -h, --help                    show this help message and exit
   --ask-custom-url, -a          Ask for a custom Download URL
+  --max-check, -c [int]         Check only the first X Mirrors (0 = no limit)
+  --download-url, -d [str]      URL to get the Mirrors from (https://archlinux.org/download/)
+  --exclude-country, -e [str]   Skip Mirrors from countries. COUNTRY1,COUNTRY2,COUNTRY3....
+  --force-ascii, -f             force ASCII for output file (non-ASCII chars will be escaped to unicode)
+  --include-country, -i [str]   Check Mirrors from countries. COUNTRY1,COUNTRY2,COUNTRY3....
+  --country-spacing, -l [int]   Spacing between Country and Status
+  --mirror-file, -m [str]       Check mirrors from a file not URL
+  --threads, -n [int]           thread amount
   --log-file, -o [str]          log output file
-  --force-ascii -f              force ASCII for output file (non-ASCII chars will be escaped to unicode)
-  --disable-ssl -s              skip SSL/TLS verifying
-  --include-country -i [str]    Check Mirrors from countries. COUNTRY1,COUNTRY2,COUNTRY3....
-  --exclude-country -e [str]    Skip  Mirrors from countries. COUNTRY1,COUNTRY2,COUNTRY3....
+  --silent, -q                  Don't print just log
+  --disable-ssl, -s             skip SSL/TLS verifying
+  --timeout, -t [int]           Request timeout (seconds)
+  --url-spacing, -u [int]       Spacing between URL and Country
+  --no-log                      Don't log into file
 ```
