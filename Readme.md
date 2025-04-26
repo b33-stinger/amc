@@ -50,3 +50,14 @@ If domain is not set amc will get the domain from the URL using urlparse
 
 As of now, you can't set the Country if you didn't set the domain. Will be fixed next update
 ```
+
+#### Rust Version
+##### https://github.com/b33-stinger/ramc
+#### Comparison
+```
+time ./amc.py -t 10 -n 10     time ./ramc
+
+real    0m51.352s             real    0m15.982s   -3.21× (68.93% faster)
+user    0m2.207s              user    0m0.695s    -3.18× (68.51% faster)
+sys     0m0.300s              sys     0m0.247s    -1.21× (17.67% faster)
+```
